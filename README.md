@@ -17,19 +17,78 @@ A beautiful, modern web application for predicting New York City taxi fares usin
 
 ## 🚀 Quick Start
 
-### 1. Install Dependencies
+### Prerequisites
+
+1. **Download Dataset** from Kaggle:
+   - Visit: https://www.kaggle.com/c/new-york-city-taxi-fare-prediction/data
+   - Download `train.csv` and `test.csv`
+   - Place them in `data/raw/` directory
+
+### Setup Instructions
+
+#### 1. Clone Repository
+
+```bash
+git clone https://github.com/Rayudualapati-25/python-project.git
+cd python-project
+```
+
+#### 2. Create Virtual Environment
+
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On macOS/Linux
+# OR
+.venv\Scripts\activate  # On Windows
+```
+
+#### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Run the App
+#### 4. Place Dataset Files
+
+```bash
+# Create data directory if it doesn't exist
+mkdir -p data/raw
+
+# Move your downloaded CSV files
+mv ~/Downloads/train.csv data/raw/
+mv ~/Downloads/test.csv data/raw/
+```
+
+#### 5. Train the Model
+
+```bash
+python train.py
+```
+
+This will:
+- Load and process `data/raw/train.csv`
+- Train XGBoost model with feature engineering
+- Save trained pipeline to `taxi_fare_pipeline.pkl`
+- Display training metrics and validation results
+
+Training typically takes 5-15 minutes depending on your hardware.
+
+#### 6. Generate Predictions (Optional)
+
+```bash
+python predict.py
+```
+
+This will:
+- Load the trained model
+- Process `data/raw/test.csv`
+- Generate predictions in `data/processed/predictions.csv`
+
+#### 7. Run the Web App
 
 ```bash
 streamlit run app.py
 ```
-
-### 3. Open in Browser
 
 The app will automatically open at `http://localhost:8501`
 
@@ -54,16 +113,23 @@ The app will automatically open at `http://localhost:8501`
 
 ## 🏆 Model Performance
 
-- **R² Score:** 86.23%
-- **RMSE:** $3.59
-- **MAE:** $1.56
-- **MAPE:** 16.38%
+Expected performance after training on the full dataset:
 
-The model was trained on 5.5 million NYC taxi trips and uses 21 engineered features including:
-- Trip distance
-- Pickup/dropoff coordinates
-- Date and time features
-- Distance from major landmarks (JFK, LGA, EWR, Times Square, etc.)
+- **R² Score:** ~86-88%
+- **RMSE:** $3-4
+- **Training Time:** 5-15 minutes (depends on hardware and sample size)
+
+Performance metrics will be displayed after running `train.py`.
+
+### Sample Output
+```
+MODEL EVALUATION
+==================================================
+Training R² Score: 0.8756
+Validation R² Score: 0.8623
+Training RMSE: $3.12
+Validation RMSE: $3.59
+```
 
 ## 🎨 Features Showcase
 
@@ -94,31 +160,71 @@ The model was trained on 5.5 million NYC taxi trips and uses 21 engineered featu
 ## 📁 Project Structure
 
 ```
-NYC-TAXI-FARE-PREDICTION/
-├── app.py                          # Streamlit application
-├── taxi_fare_pipeline.pkl          # Trained ML model
-├── nyc-taxi-fare-pipeline.ipynb    # Model training notebook
-├── data-visualization.ipynb        # Data exploration notebook
+python-project/
+├── app.py                          # Streamlit web application
+├── train.py                        # Model training script
+├── predict.py                      # Batch prediction script
+├── taxi_fare_pipeline.pkl          # Trained ML model (generated)
 ├── requirements.txt                # Python dependencies
-├── train.csv                       # Training data
-├── test.csv                        # Test data
-└── README.md                       # This file
+├── README.md                       # This file
+├── .gitignore                      # Git ignore rules
+└── data/
+    ├── raw/                        # Place train.csv and test.csv here
+    │   ├── train.csv              # Training dataset (download from Kaggle)
+    │   └── test.csv               # Test dataset (download from Kaggle)
+    └── processed/                  # Generated predictions
+        └── predictions.csv        # Model predictions (generated)
 ```
 
 ## 🔧 Technical Details
 
 ### Model Architecture
 - **Algorithm:** XGBoost Regressor
-- **Features:** 21 engineered features
-- **Training Data:** 4.3M samples
-- **Validation Data:** 1.1M samples
+- **Features:** 20 engineered features
+- **Hyperparameters:**
+  - n_estimators: 300
+  - max_depth: 7
+  - learning_rate: 0.1
+  - subsample: 0.8
+  - colsample_bytree: 0.8
 
 ### Feature Engineering Pipeline
-1. DateTime feature extraction (year, month, day, weekday, hour)
-2. Haversine distance calculation
-3. Landmark distance calculations (5 major NYC landmarks)
-4. Outlier removal
-5. Feature selection
+1. **DateTime Features** - Extract year, month, day, weekday, hour from pickup_datetime
+2. **Trip Distance** - Calculate haversine distance between pickup and dropoff
+3. **Landmark Distances** - Distance to JFK, LGA, EWR, Met Museum, WTC (10 features)
+4. **Outlier Removal** - Filter invalid coordinates, unreasonable fares
+5. **Feature Selection** - Select 20 most relevant features
+
+### Training Pipeline (`train.py`)
+```python
+# Load data with optional sampling
+df = pd.read_csv('data/raw/train.csv')
+
+# Feature engineering pipeline
+Pipeline([
+    ('datetime_features', DatetimeFeatureExtractor()),
+    ('distance', DistanceCalculator()),
+    ('landmarks', LandmarkDistanceCalculator()),
+    ('outlier_removal', OutlierRemover()),
+    ('feature_selection', FeatureSelector())
+])
+
+# Train XGBoost
+model = XGBRegressor(n_estimators=300, max_depth=7, ...)
+model.fit(X_train, y_train)
+```
+
+### Prediction Pipeline (`predict.py`)
+```python
+# Load trained model
+pipeline_data = pickle.load('taxi_fare_pipeline.pkl')
+
+# Transform test data
+X_test = pipeline_data['feature_pipeline'].transform(test_df)
+
+# Generate predictions
+predictions = pipeline_data['model'].predict(X_test)
+```
 
 ## 📝 License
 

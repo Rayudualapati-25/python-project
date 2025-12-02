@@ -4,7 +4,7 @@ matplotlib
 seaborn
 scikit-learn
 xgboost
-opendatasets
 streamlit
 folium
 streamlit-folium
+kaggle

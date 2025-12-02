@@ -50,8 +50,12 @@ Thumbs.db
 # Project specific
 GCP-Coupons-Instructions.rtf
 app_old.py
-*.csv
 *.rtf
+
+# Data - ignore large datasets but allow tracking small samples
+data/raw/*.csv
+data/processed/*.csv
+!data/sample/*.csv
 
 # Streamlit
 .streamlit/
